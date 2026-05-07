@@ -85,9 +85,9 @@ export const DeliveryLayout = () => {
                 onClick={() => navigate('/profile')}
                 className="flex items-center gap-2 p-1 pr-3 rounded-full hover:bg-surface-100 transition-colors"
               >
-                <Avatar src={user?.avatarUrl} size="sm" />
+                <Avatar size="sm" />
                 <span className="hidden sm:inline text-sm font-medium" style={{ color: '#6B7B8C' }}>
-                  {user?.firstName}
+                  {user?.fullName}
                 </span>
               </button>
               

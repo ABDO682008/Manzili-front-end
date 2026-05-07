@@ -6,7 +6,7 @@ import { usersApi } from '../../api';
 import toast from 'react-hot-toast';
 
 export const ProfilePage = () => {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -19,7 +19,7 @@ export const ProfilePage = () => {
     try {
       const response = await usersApi.updateProfile(formData);
       if (response.success && response.data) {
-        updateUser(response.data);
+        // Profile updated successfully
         toast.success('Profile updated successfully');
         setIsEditing(false);
       }
@@ -37,7 +37,7 @@ export const ProfilePage = () => {
     try {
       const response = await usersApi.uploadAvatar(file);
       if (response.success && response.data) {
-        updateUser({ avatarUrl: response.data.avatarUrl });
+        // Avatar uploaded successfully
         toast.success('Avatar updated');
       }
     } catch {

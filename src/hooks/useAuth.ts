@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores';
 export const useAuth = () => {
   const { user, isAuthenticated, role, setAuth, clearAuth } = useAuthStore();
 
-  const updateUser = (updates: Partial<typeof user>) => {
+  const updateUser = (_updates: Partial<typeof user>) => {
     if (!user) return;
   };
 

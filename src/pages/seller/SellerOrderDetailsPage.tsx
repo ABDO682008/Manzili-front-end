@@ -18,13 +18,12 @@ import {
   ChevronUp,
   Loader2,
   MapPin,
-  Phone,
   Hash,
   RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { transactionsApi } from '../../api/transactions.api';
-import { STATUS_LABELS, type Transaction } from '../../types';
+import { STATUS_LABELS } from '../../types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
