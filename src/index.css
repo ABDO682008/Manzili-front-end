@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { @apply box-border; }
+  html { direction: rtl; }
+  /* Warm surface backgrounds - no pure white, friendly aesthetic */
+  body { @apply font-sans antialiased bg-surface-100 text-heading-700; }
+  #root { @apply min-h-screen w-full; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  /* Primary gradient for CTA emphasis - strict color system */
+  .gradient-text {
+    background: linear-gradient(135deg, #DD643C, #ED8E3C);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Nature gradient for eco-friendly feel */
+  .gradient-nature {
+    background: linear-gradient(135deg, #769E66, #95B88A);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  /* Primary CTA glow - strict color system */
+  .glow-hover:hover {
+    box-shadow: 0 0 0 1px rgba(221,100,60,0.3),
+                0 4px 16px rgba(221,100,60,0.2),
+                0 16px 40px rgba(221,100,60,0.1);
+  }
+
+  /* Warm card styles */
+  .card-warm {
+    @apply bg-white rounded-2xl shadow-soft transition-all duration-300;
+  }
+
+  .card-warm:hover {
+    @apply shadow-card-hover transform -translate-y-1;
+  }
+
+  /* Primary button - STRICT: only for CTA */
+  .btn-primary {
+    @apply bg-primary text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200;
+    @apply hover:bg-primary-dark hover:shadow-warm active:scale-95;
+  }
+
+  /* Nature button for secondary actions */
+  .btn-nature {
+    @apply bg-nature text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200;
+    @apply hover:bg-nature-dark hover:shadow-nature active:scale-95;
+  }
+
+  /* Warm button for accents */
+  .btn-warm {
+    @apply bg-warm text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200;
+    @apply hover:bg-warm-dark hover:shadow-warm active:scale-95;
+  }
+
+  /* Neutral/ghost button */
+  .btn-ghost {
+    @apply bg-transparent text-heading-600 font-medium px-6 py-3 rounded-xl transition-all duration-200;
+    @apply hover:bg-surface-200 active:scale-95;
+  }
+
+  /* Section headings using heading color */
+  .heading-man {
+    @apply text-heading-600 font-bold;
+  }
+
+  /* Body text with neutral tones */
+  .text-body {
+    @apply text-neutral-600;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Warm skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, #F0E9E3 25%, #F9F6F3 50%, #F0E9E3 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Warm scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #F9F6F3; }
+::-webkit-scrollbar-thumb { background: #D1D7DE; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #9BA8B4; }

@@ -1,0 +1,1317 @@
+# 🚀 MANZILI — REPLIT AI ULTIMATE BUILD PROMPT
+# اقرأ كل كلمة قبل ما تكتب سطر كود واحد
+
+---
+
+## 🎯 المهمة
+
+أنت بتكمل وبتـrefine مشروع React اسمه **Manzili** — marketplace مصري للخدمات المنزلية.
+
+الـ Backend شغال وجاهز على:
+```
+http://manzili-app.runasp.net/api
+```
+
+مطلوب منك:
+1. كمّل أي صفحة أو component ناقص
+2. خلّي كل حاجة **تلمع** — animations، UI، UX
+3. وصّل كل endpoint بالظبط زي ما هو موثق
+4. لا تخترع endpoint مش موجود في الدوكيومنتاشن
+5. اعمل code review شامل وصلّح أي غلطة
+
+---
+
+## ⛔ RULES — لو كسرت واحدة منهم المشروع اتكسر
+
+```
+1. NEVER call an endpoint not listed in this document
+2. NEVER use localStorage for tokens — Zustand memory ONLY
+3. NEVER skip loading / empty / error states
+4. NEVER show an action button if the status doesn't allow it
+5. NEVER hardcode colors — use the design system
+6. NEVER forget mobile responsiveness
+7. NEVER double-submit a form — disable button during loading
+8. NEVER invent data — if API is "Not Ready", show Coming Soon UI
+```
+
+---
+
+## 🌐 API — COMPLETE & CONFIRMED
+
+### Base URL
+```
+http://manzili-app.runasp.net/api
+```
+
+### Image URL
+```typescript
+// Images come as filename strings: "cakes_1.jpg"
+const getImageUrl = (f: string) =>
+  !f ? '/placeholder.jpg'
+  : f.startsWith('http') ? f
+  : `http://manzili-app.runasp.net/images/${f}`;
+```
+
+---
+
+### ✅ ENDPOINT 1 — Register
+```
+POST /auth/register
+Body: { fullName: string, email: string, password: string, role: 1|2|3 }
+      role: 1=Buyer  2=Seller(Provider)  3=Admin
+Response: { success: true, message: "User Registered Successfully" }
+Error: 409 → email already exists
+```
+
+### ✅ ENDPOINT 2 — Login
+```
+POST /auth/login
+Body: { email: string, password: string }
+Response: { accessToken: string, refreshToken: string, role: "Buyer"|"Provider"|"Admin" }
+NOTE: "Provider" = Seller in UI — map it!
+Error: 401 → invalid credentials
+```
+
+### ✅ ENDPOINT 3 — Refresh Token
+```
+POST /auth/refresh
+Body: { refreshToken: string }
+Response: { accessToken: string, refreshToken: string }
+Error: 401 → refresh failed → logout user
+```
+
+### ✅ ENDPOINT 4 — Get Categories
+```
+GET /categories
+Auth: Not required
+Response: {
+  success: true,
+  data: {
+    items: [{ id, slug, nameAr, isActive, sortOrder, createdAt }]
+  }
+}
+```
+
+### ✅ ENDPOINT 5 — Home Sections
+```
+GET /services/home/{no}
+Param: no = number of services per section (use 4)
+Auth: Not required
+Response: {
+  topDiscounts: ServiceCard[],
+  recommended: ServiceCard[],
+  mostPurchased: ServiceCard[],
+  regular: ServiceCard[]
+}
+ServiceCard: { id, title, providerName, basePrice, rating, imageUrl }
+```
+
+### ✅ ENDPOINT 6 — Get All Services
+```
+GET /services
+Query: page(default 1), pageSize(default 10), categoryId?, isRecommended?, topDiscounts?, mostPurchased?
+Auth: Not required
+Response: { items: ServiceCard[], page, pageSize, totalPages }
+```
+
+### ✅ ENDPOINT 7 — Search Services
+```
+GET /services/name/{name}
+Path: name = search keyword (URL encoded)
+Query: pageNumber, pageSize
+Auth: Not required
+Response: { items: [{ id, title, basePrice, providerName, thumbnailImageUrl }] }
+⚠️  Field is "thumbnailImageUrl" here not "imageUrl"
+```
+
+### ✅ ENDPOINT 8 — Get Service By ID
+```
+GET /services/{id}
+Auth: Not required
+Response: {
+  id, title, serviceDescription, basePrice, address,
+  provider: { id, fullName, rating, reviewsNo },
+  optionGroups: [{
+    id, name, isRequired, allowMultiple,
+    options: [{ id, name, priceAdjustment }]
+  }],
+  images: [{ id, imageUrl }]
+}
+```
+
+### ✅ ENDPOINT 9 — Request a Service
+```
+POST /orders/request
+Auth: Required (Bearer token)
+Body: {
+  serviceId: number,
+  customizationText: string,
+  customRequestImage?: string,
+  quantity: number,
+  optionGroups: [{ groupId: number, items: [{ optionId: number, quantity: number }] }]
+}
+Response: { requestId: string, totalPrice: number, requestDate: string }
+```
+
+### ✅ ENDPOINT 10 — Get All Orders (Buyer)
+```
+GET /orders
+Auth: Required
+Query: status?, page?, pageSize?
+Response: {
+  items: [{
+    id, serviceName, customizationDetails, totalPrice,
+    status, providerName, createdAt,
+    options: [{ groupOption, option, quantity }]
+  }]
+}
+Status values: "Request" | "RePriced" | "AcceptedPrice" | "Accepted" |
+               "PaymentFailed" | "Paid" | "InProgress" | "ReadyForShipping" |
+               "OutForDelivery" | "Delivered" | "Completed" |
+               "CancelledByBuyer" | "CancelledBySeller" | "Rejected" | "Expired"
+```
+
+### ✅ ENDPOINT 11 — Payment Summary
+```
+GET /order/payment-summary       ← SINGULAR "order" not "orders"!
+Auth: Required
+Response (PascalCase!): {
+  Services: [{ OrderId, Image, Title, Quantity, Price, Options: [{Name, Quantity, Price}] }],
+  Address: { AddressPreview, Phone },
+  PriceBreakdown: { Subtotal, DeliveryFees, Total }
+}
+```
+
+### ✅ ENDPOINT 12 — Submit Payment Proof
+```
+POST /orders/submit-payment
+Auth: Required
+Body (JSON not FormData): {
+  OrderIds: number[],
+  PaymentScreenshot: string,   ← base64 encoded image string
+  Notes: string | null
+}
+Response: { OrderNo: string, PaymentDate: string, Total: number }
+```
+
+### ✅ ENDPOINT 13 — Seller Dashboard
+```
+GET /seller/dashboard
+Auth: Required (Seller role)
+Response: { totalServices, activeOrders, completedOrders, totalRevenue, averageRating }
+```
+
+### ✅ ENDPOINT 14 — Get Seller Services
+```
+GET /seller/services
+Auth: Required (Seller role)
+Query: Status?, Page?, PageSize?
+Response (PascalCase!): {
+  Items: [{ Id, Title, Image, Category, Rating, OrdersCount, Status, BasePrice, CreatedAt }]
+}
+```
+
+### ✅ ENDPOINT 15 — Get Seller Service By ID
+```
+GET /seller/services/{id}
+Auth: Required (Seller role)
+Response: full service with optionGroups (same shape as public but from seller perspective)
+```
+
+### ✅ ENDPOINT 16 — Create Service
+```
+POST /seller/services
+Auth: Required (Seller role)
+Content-Type: multipart/form-data
+Fields: title, description, categoryId, basePrice
+        optionGroups[0].name, optionGroups[0].isRequired
+        optionGroups[0].options[0].name, optionGroups[0].options[0].price
+        images[] (binary files)
+Response: { success: true, message: "Service created successfully." }
+```
+
+### 🔄 ENDPOINT 17 — Update Service (Backend In Progress)
+```
+PUT /seller/services/{id}
+Same format as Create (multipart/form-data)
+If error → toast "Update feature finalizing, try again soon"
+```
+
+### 🔄 ENDPOINT 18 — Delete Service (Backend In Progress)
+```
+DELETE /seller/services/{id}
+If error → toast "Delete feature finalizing, try again soon"
+```
+
+### ❌ NOT READY — Return empty / Coming Soon
+```
+/seller/orders      → Coming Soon UI
+/reviews/*          → Coming Soon UI
+/admin/*            → Coming Soon UI
+/delivery/*         → Coming Soon UI
+/favorites/*        → Coming Soon UI
+```
+
+---
+
+## 🎨 DESIGN SYSTEM — NON-NEGOTIABLE
+
+### Colors (CSS variables or Tailwind config)
+```css
+--brand-50:  #f0f4ff;
+--brand-100: #e0e9ff;
+--brand-500: #6366f1;
+--brand-600: #4f46e5;
+--brand-700: #4338ca;
+--brand-900: #312e81;
+--brand-950: #1e1b4b;
+--accent:    #ec4899;
+--surface-50: #fafafa;
+--surface-100:#f4f4f5;
+--surface-200:#e4e4e7;
+--surface-900:#18181b;
+```
+
+### Cards
+```css
+background: white;
+border-radius: 1rem; /* rounded-2xl */
+box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 8px 24px rgba(0,0,0,0.08);
+transition: all 0.3s ease;
+
+/* Hover */
+transform: translateY(-4px);
+box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 16px 40px rgba(0,0,0,0.12);
+```
+
+### Primary Button
+```css
+background: linear-gradient(135deg, #4f46e5, #7c3aed);
+color: white;
+border-radius: 0.75rem;
+font-weight: 600;
+padding: 0.75rem 1.5rem;
+transition: all 0.2s;
+
+/* Hover */
+background: linear-gradient(135deg, #4338ca, #6d28d9);
+box-shadow: 0 0 30px rgba(99,102,241,0.4);
+transform: translateY(-1px);
+
+/* Active */
+transform: scale(0.98);
+```
+
+### Page Background
+```css
+background: linear-gradient(135deg, #fafafa 0%, #ffffff 50%, rgba(99,102,241,0.03) 100%);
+min-height: 100vh;
+```
+
+### Input Fields
+```css
+border: 1.5px solid #e4e4e7;
+border-radius: 0.75rem;
+padding: 0.75rem 1rem;
+transition: all 0.2s;
+
+/* Focus */
+border-color: #6366f1;
+box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+outline: none;
+```
+
+### Skeleton Loading
+```css
+background: linear-gradient(90deg, #e4e4e7 25%, #f4f4f5 50%, #e4e4e7 75%);
+background-size: 200% 100%;
+animation: shimmer 1.5s infinite;
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+```
+
+---
+
+## ✨ ANIMATIONS — APPLY EVERYWHERE
+
+### Framer Motion — Page Entrance
+```tsx
+// Wrap EVERY page content with this
+<motion.div
+  initial={{ opacity: 0, y: 12 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+>
+```
+
+### Framer Motion — List Stagger
+```tsx
+// Every card list, table row, grid item
+{items.map((item, i) => (
+  <motion.div
+    key={item.id}
+    initial={{ opacity: 0, y: 24 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: i * 0.06, duration: 0.35 }}
+  >
+```
+
+### Framer Motion — Modal
+```tsx
+// Backdrop
+<motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+// Modal card
+<motion.div
+  initial={{ opacity:0, scale:0.93, y:20 }}
+  animate={{ opacity:1, scale:1,    y:0  }}
+  exit={{    opacity:0, scale:0.93, y:20 }}
+  transition={{ type:'spring', stiffness:300, damping:30 }}
+>
+```
+
+### Framer Motion — Stats Counter
+```tsx
+// Dashboard stat numbers count up from 0
+const MotionNumber = ({ value }: { value: number }) => {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, Math.round);
+  useEffect(() => {
+    animate(count, value, { duration: 1.5, ease: 'easeOut' });
+  }, [value]);
+  return <motion.span>{rounded}</motion.span>;
+};
+```
+
+### CSS — Glow Effect on Hover
+```css
+.glow-hover:hover {
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.3),
+              0 4px 16px rgba(99,102,241,0.2),
+              0 16px 40px rgba(99,102,241,0.1);
+}
+```
+
+### CSS — Float Animation (hero elements)
+```css
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+.animate-float { animation: float 4s ease-in-out infinite; }
+```
+
+### CSS — Gradient Text
+```css
+.gradient-text {
+  background: linear-gradient(135deg, #4f46e5, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+```
+
+---
+
+## 📄 PAGES — COMPLETE SPECS
+
+---
+
+### `/signup` — Sign Up Page
+
+**Layout:** Full screen dark gradient bg + centered white card
+
+**Visual:**
+- Giant logo "M" in gradient circle (float animation)
+- "مَنزِلِي" Arabic text below logo, gradient colored
+- Card: white, rounded-3xl, shadow-2xl, max-w-md
+
+**Fields (React Hook Form + Zod):**
+```typescript
+schema = z.object({
+  fullName: z.string().min(2, 'Name too short'),
+  email: z.string().email('Invalid email'),
+  password: z.string()
+    .min(8, 'Min 8 characters')
+    .regex(/[A-Z]/, 'Need uppercase')
+    .regex(/[a-z]/, 'Need lowercase')
+    .regex(/[0-9]/, 'Need number')
+    .regex(/[^A-Za-z0-9]/, 'Need special character'),
+  role: z.enum(['1', '2']),
+})
+```
+
+**Password strength meter:**
+```
+[████░░░░] Fair
+Colors: red(1) → orange(2) → yellow(3) → green(4)
+Based on: length + has upper + has number + has special
+```
+
+**Role Selector:**
+Two big animated cards side by side:
+```
+┌─────────────────┐  ┌─────────────────┐
+│  🛒             │  │  🏪             │
+│  I want to buy  │  │  I want to sell │
+│  Browse amazing │  │  List your      │
+│  home services  │  │  services here  │
+└─────────────────┘  └─────────────────┘
+Selected: brand border + glow + checkmark ✓
+```
+
+**Submit:** `POST /auth/register` → role: Buyer=1, Seller=2
+- Success → green toast → /signin
+- 409 → red text under email
+
+---
+
+### `/signin` — Sign In Page
+
+**Same visual layout as signup**
+
+**Fields:** email + password (show/hide toggle eye icon)
+
+**Submit:** `POST /auth/login`
+- Map response role: "Provider" → Seller in store
+- Redirect: Buyer→/home, Provider→/seller/dashboard, Admin→/admin/hub
+- 401 → red inline message
+
+**Decorative:** subtle grid pattern on dark bg, floating brand-colored blobs (opacity 10%)
+
+---
+
+### `/home` — Home Page
+
+**Hero Section:**
+```
+Gradient heading (gradient-text class):
+"Find Amazing
+Home Services"
+
+Arabic subheading (smaller, muted):
+"اكتشف خدمات منزلية موثوقة من أفضل المزودين"
+
+Search bar (large, rounded-2xl, shadow):
+[🔍] [animated placeholder cycling...]  [Search]
+
+Animated placeholder cycles every 2s:
+"ابحث عن كيك..." → "ابحث عن خياطة..." → "ابحث عن تنظيف..."
+```
+
+**Behind hero:** subtle animated gradient blob (CSS radial gradient, slow float)
+
+**Categories Row:**
+- Data from `GET /categories`
+- Horizontally scrollable (hide scrollbar)
+- Each pill: rounded-full, border, hover → brand filled
+- Shows `nameAr` (Arabic name)
+- "All" pill first (filter reset)
+- Click → navigate /services?categoryId={id}
+
+**4 Service Sections from `GET /services/home/4`:**
+Each section:
+```
+┌─────────────────────────────────────────────────┐
+│ [colored icon] Section Title    [View All →]    │
+│                                                 │
+│ [Card] [Card] [Card] [Card]                     │
+└─────────────────────────────────────────────────┘
+```
+
+Section titles:
+- topDiscounts → "🔥 Top Discounts" / "أفضل العروض"
+- recommended → "⭐ Recommended" / "موصى به"
+- mostPurchased → "🏆 Most Popular" / "الأكثر طلبًا"
+- regular → "🆕 Browse Services" / "تصفح الخدمات"
+
+**ServiceCard Component:**
+```
+┌──────────────────────────────┐
+│  [image 200px, object-cover] │
+│  [VIP badge top-right]        │
+├──────────────────────────────┤
+│ Title (1 line, truncate)      │
+│ ■ Provider name (small gray)  │
+│ ★ 4.5  (128)     350 EGP    │
+│ [Quick Request button]        │  ← appears on hover only
+└──────────────────────────────┘
+Width: 280px (scroll on mobile), responsive grid on desktop
+Hover: translateY(-6px) + shadow-card-hover + glow
+Image: lazy loading, ImageWithFallback
+```
+
+---
+
+### `/services` — Services Page
+
+**URL params:** `?search=&categoryId=&page=`
+
+**Layout:**
+```
+[Search bar — synced with URL, debounced 400ms]
+[Category pills from /categories]
+[Results count: "24 services found"]
+─────────────────────────────────
+[Grid: 4col desktop, 3col tablet, 2col mobile, 1col small]
+[Pagination: numbered, max 5 pages shown]
+```
+
+**Search behavior:**
+- If `search` param exists → `GET /services/name/{keyword}`
+- Otherwise → `GET /services` with filters
+
+**Loading:** 12 skeleton cards in same grid
+**Empty:** friendly illustration + "No services found" + "Clear filters" CTA
+**Error:** error icon + message + retry button
+
+---
+
+### `/services/:serviceId` — Service Details
+
+**API:** `GET /services/{id}`
+
+**Layout (2-col desktop, stacked mobile):**
+
+**LEFT — Image Gallery:**
+```
+Main image (400px height, object-cover, rounded-2xl)
+Thumbnail strip below (60px height each, border on selected)
+← → Arrow navigation (framer motion slide transition)
+Dot indicators at bottom
+```
+
+**RIGHT — Details:**
+```
+[Title — large, bold]
+[Provider info row: Avatar | fullName | ★rating (reviewsNo reviews)]
+[Divider]
+
+[Option Groups:]
+Each group:
+  Group name + (Required) badge if isRequired
+  Options as styled radio/checkbox buttons:
+    ┌──────────────────┐  ┌──────────────────┐
+    │ Option Name      │  │ Option Name      │
+    │ +50 EGP         │  │ +100 EGP        │
+    └──────────────────┘  └──────────────────┘
+    Selected: brand border + brand bg-5% + checkmark
+
+  priceAdjustment added to running total when selected
+
+[Divider]
+[Quantity: [-] [1] [+] — animated number change]
+[Customization notes: textarea, "Any special requests?"]
+
+[Divider]
+[Total price calculation:]
+  Base: 0 EGP (starts from)
+  + Option adjustments (dynamic)
+  = Total: [XXX] EGP  ← updates live
+
+[Big CTA button:]
+  "Request This Service — XXX EGP"
+  Full width, gradient, large, rounded-xl
+  → POST /orders/request
+  → Success: toast + navigate /requests
+```
+
+**Price Calculation Logic:**
+```typescript
+// basePrice from API is often 0 — total = sum of selected priceAdjustments × quantity
+const total = selectedOptions.reduce((sum, opt) => sum + opt.priceAdjustment, 0) * quantity;
+```
+
+**Reviews section:**
+```
+[Reviews heading]
+"Coming Soon — Reviews launching soon! 🚀"
+[Rocket icon with float animation]
+```
+
+---
+
+### `/requests` — Requests Page (Buyer)
+
+**API:** `GET /orders` (all statuses)
+
+**Tabs with animated underline indicator:**
+```
+[Pending (N)] [Action Needed ⚡(N)] [Ready to Pay 💳(N)] [Closed (N)]
+```
+
+| Tab | Statuses |
+|-----|----------|
+| Pending | Request |
+| Action Needed | RePriced |
+| Ready to Pay | Accepted, AcceptedPrice |
+| Closed | Rejected, Expired, Cancelled* |
+
+**Each request card:**
+```
+┌─────────────────────────────────────────────────────┐
+│ [Image 72px]  [Title]                               │
+│               Provider: Ahmed M.                    │
+│               [StatusBadge]  ⏱ [CountdownTimer]    │
+│               Options: Size: Large, Color: Blue     │
+│               Total: 350 EGP                        │
+│               [Action buttons]                      │
+└─────────────────────────────────────────────────────┘
+```
+
+**Action buttons by status:**
+- `Request` → "Cancel" (ghost red) — Note: no cancel endpoint confirmed → toast "Contact support to cancel"
+- `RePriced` → "Accept New Price" (green) + "Decline" (red outline) → both toast "Coming soon"
+- `Accepted`/`AcceptedPrice` → "Pay Now →" (primary brand) → /payment/summary
+
+**CountdownTimer:**
+- expiresAt = createdAt + 48h
+- Format: "23h 45m" then "45m 30s" when < 1h
+- Red + pulse when < 2h
+- "Expired" when 0
+
+---
+
+### `/payment/summary` — Payment Summary
+
+**API:** `GET /order/payment-summary` ← SINGULAR
+
+**Layout:**
+```
+[Back arrow] Payment Summary
+
+Services:
+─────────────────────────────────
+[Image 60px] | Title
+             | Qty: 1
+             | [Options listed]
+             | 400 EGP
+─────────────────────────────────
+Delivery Address:
+📍 [AddressPreview]
+📞 [Phone]
+─────────────────────────────────
+Price Breakdown:
+  Subtotal:     350 EGP
+  Delivery fee:  50 EGP
+  ─────────────────────
+  Total:        400 EGP  ← larger, bolder
+─────────────────────────────────
+[Continue to Payment →]
+```
+
+Store the OrderIds and Total in component state to pass to payment method page.
+
+---
+
+### `/payment/method` — Payment Method
+
+**Layout:**
+```
+[Back] Choose Payment Method
+
+Method cards:
+┌─────────────────────────────────┐
+│ 📱 Vodafone Cash               │
+│ Instant transfer               │
+└─────────────────────────────────┘
+┌─────────────────────────────────┐
+│ 🏦 Instapay                    │
+│ Bank transfer                   │
+└─────────────────────────────────┘
+
+After selecting:
+─────────────────────────────────
+Account Details:
+Vodafone Cash: 01XXXXXXXXX
+(hardcode placeholder — backend will provide real number later)
+
+Steps:
+① Transfer [Total] EGP to the number above
+② Screenshot the confirmation screen
+③ Upload the screenshot below
+
+Upload Area (dashed border):
+┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐
+│   📤                    │
+│   Click or drag & drop  │
+│   JPG, PNG — max 10MB   │
+└─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘
+After upload: show thumbnail preview + file name + ✓
+
+[Notes] textarea (optional)
+
+[Submit Payment Proof] — disabled until file uploaded
+```
+
+**File → Base64:**
+```typescript
+const toBase64 = (file: File): Promise<string> =>
+  new Promise(resolve => {
+    const r = new FileReader();
+    r.onload = () => resolve((r.result as string).split(',')[1]);
+    r.readAsDataURL(file);
+  });
+```
+
+**Submit → `POST /orders/submit-payment`:**
+```json
+{
+  "OrderIds": [1, 3],
+  "PaymentScreenshot": "base64string",
+  "Notes": null
+}
+```
+
+Success → /payment/success
+
+---
+
+### `/payment/success` — Payment Success
+
+```
+Animated confetti (CSS keyframes, 20 colored dots fall)
+
+[Big animated checkmark — stroke animation with SVG]
+"Payment Submitted! 🎉"
+
+Order No: [OrderNo]
+Date: [PaymentDate formatted]
+Total: [Total] EGP
+
+Note card (blue bg):
+ℹ️ "Our team will verify your payment within a few hours.
+     You'll be notified once confirmed."
+
+[View My Orders →]  [Browse More Services]
+```
+
+---
+
+### `/orders` — Orders Page (Buyer)
+
+**API:** `GET /orders` all statuses
+
+**Tabs:** All | Active | Completed | Cancelled
+
+**Each card:**
+```
+┌──────────────────────────────────────────────────┐
+│ [Image] | Service Name (truncate 1 line)          │
+│         | Provider: Name                          │
+│         | [StatusBadge]  Date: 24 Apr 2025        │
+│         | Options: Size: L, Color: Red            │
+│         | Total: 400 EGP                [Chevron] │
+└──────────────────────────────────────────────────┘
+```
+
+Clicking card → expand to show more details (accordion animation, no new page needed)
+
+Expanded:
+```
+Customization notes: "..."
+Order ID: #12345
+[Action based on status]
+```
+
+---
+
+### `/account` — Account Page
+
+No API needed — read from authStore JWT:
+
+```
+[Large avatar with gradient bg + initials]
+[Full Name from JWT]
+[Email from JWT]
+[Role badge: "🛒 Buyer" or "🏪 Seller"]
+
+Stats:
+  [Member since: decoded from JWT iat timestamp]
+
+Quick links:
+[📋 My Orders] [📦 My Requests]
+
+[Sign Out button — red outline]
+→ clearAuth() + navigate /signin
+```
+
+---
+
+### `/vip` — VIP Page
+
+```
+Coming Soon:
+[Crown icon with gold glow animation]
+"VIP Membership"
+"Coming Soon"
+"Unlock premium features, priority support, and exclusive discounts."
+
+3 teaser cards:
+[⚡ Faster Response] [🎯 Priority Listing] [💰 Special Discounts]
+Each: blurred/grayed out with lock icon
+```
+
+---
+
+### `/favorites` — Favorites Page
+
+```
+[Heart icon with pulse animation]
+"Your Favorites"
+"Coming Soon — Save your favorite services for quick access."
+[Browse Services button]
+```
+
+---
+
+### SELLER LAYOUT
+
+**Left sidebar (240px, dark):**
+```
+bg: gradient from brand-950 to surface-900
+Text: white
+
+Top: [M] Manzili logo + "Seller Mode" badge
+
+Nav items:
+📊 Dashboard
+🛍️ My Services
+📋 Manage Orders   [Coming Soon pill]
+🏷️ Discounts        [Coming Soon pill]
+💵 Earnings         [Coming Soon pill]
+
+Bottom:
+[←] Switch to Buyer    ← role switch not implemented → toast
+[Sign Out]
+```
+
+Active nav item: brand-500 text + brand-500/10 background + left accent bar
+
+Mobile: bottom nav with same icons
+
+---
+
+### `/seller/dashboard` — Seller Dashboard
+
+**API:** `GET /seller/dashboard`
+
+**Welcome bar:**
+```
+Good morning, [name]! 👋   [+ Add Service] button
+```
+
+**Stats Grid (animated count-up):**
+```
+┌───────────────────┐ ┌───────────────────┐ ┌───────────────────┐
+│ 📦                │ │ 🔄                │ │ ✅                │
+│ [5]               │ │ [3]               │ │ [12]              │
+│ Total Services    │ │ Active Orders     │ │ Completed         │
+└───────────────────┘ └───────────────────┘ └───────────────────┘
+┌───────────────────┐ ┌───────────────────┐
+│ 💰                │ │ ⭐                │
+│ [2,350] EGP       │ │ [4.8] ★           │
+│ Total Revenue     │ │ Avg. Rating       │
+└───────────────────┘ └───────────────────┘
+```
+
+Each card: white, shadow, rounded-2xl, hover: translateY(-4px) + glow
+Numbers animate from 0 on mount (framer-motion useSpring)
+
+**Quick Actions:**
+```
+[+ Add New Service] → /seller/services/create
+[View All Services] → /seller/services
+```
+
+**Orders section:**
+```
+[📋 Manage Orders — Coming Soon]
+Card with coming soon badge and brief description
+```
+
+---
+
+### `/seller/services` — My Services
+
+**API:** `GET /seller/services`
+
+**Header:**
+```
+"My Services" + count badge + [+ Add Service] button
+```
+
+**Filter tabs:** All | Active | Draft | Blocked
+
+**Service cards (grid 3-col desktop, 2-col tablet, 1-col mobile):**
+```
+┌─────────────────────────────────┐
+│ [Image 160px, rounded-t-2xl]   │
+│ [Status badge top-right]        │
+├─────────────────────────────────┤
+│ Title (truncate)                │
+│ Category — BasePrice EGP        │
+│ ★ [Rating]   📦 [OrdersCount]  │
+│                                 │
+│ [Edit] [Delete]                 │
+└─────────────────────────────────┘
+```
+
+Note: API returns PascalCase (Id, Title, Image, Category, Status, etc.) — map carefully
+
+Edit → /seller/services/:Id/edit
+Delete → ConfirmDialog → `DELETE /seller/services/:Id`
+  → If error → toast "Delete feature finalizing on backend"
+
+---
+
+### `/seller/services/create` — Create Service
+
+**Multi-step form with step indicator:**
+```
+① Basic Info → ② Options → ③ Images → ④ Review
+```
+
+**Step 1 — Basic Info:**
+```
+Title (required, max 100, char counter)
+Category (dropdown from GET /categories, shows nameAr)
+Base Price (EGP, number, min 0)
+Description (textarea, min 20, char counter)
+```
+
+**Step 2 — Option Groups (dynamic):**
+```
+[+ Add Option Group] button
+
+Each group:
+  Group Name: [___________]
+  Required: [toggle]
+  Options:
+    [Option name] [+Price EGP] [×]
+    [Option name] [+Price EGP] [×]
+    [+ Add Option]
+  [Remove Group]
+```
+
+**Step 3 — Images:**
+```
+Upload area (drag & drop):
+  Accept: .jpg, .png, max 5MB each, max 5 images
+  Preview grid: 3×2 with remove (×) button on each
+  Min 1 image required
+```
+
+**Step 4 — Review:**
+```
+Preview of everything before submit
+[← Back] [Create Service →]
+```
+
+**Build FormData correctly:**
+```typescript
+const fd = new FormData();
+fd.append('title', data.title);
+fd.append('description', data.description);
+fd.append('categoryId', String(data.categoryId));
+fd.append('basePrice', String(data.basePrice));
+groups.forEach((g, gi) => {
+  fd.append(`optionGroups[${gi}].name`, g.name);
+  fd.append(`optionGroups[${gi}].isRequired`, String(g.isRequired));
+  g.options.forEach((o, oi) => {
+    fd.append(`optionGroups[${gi}].options[${oi}].name`, o.name);
+    fd.append(`optionGroups[${gi}].options[${oi}].price`, String(o.price));
+  });
+});
+images.forEach(img => fd.append('images[]', img));
+```
+
+Call `POST /seller/services` → success → /seller/services
+
+---
+
+### `/seller/services/:id/edit` — Update Service
+
+Same form pre-filled from `GET /seller/services/:id`
+Submit → `PUT /seller/services/:id`
+If backend error → toast "Update finalizing, try again soon"
+
+---
+
+### SELLER COMING SOON PAGES
+
+`/seller/orders`, `/seller/discounts`, `/seller/earnings`:
+```
+[Animated icon matching the section]
+"[Feature Name]"
+"Coming Soon"
+"This feature is being finalized. Stay tuned!"
+[Go to Dashboard]
+```
+
+---
+
+### ADMIN PAGES — ALL COMING SOON
+
+`/admin/hub` and all sub-pages:
+```
+[🔒 lock icon, slow pulse]
+"Admin Panel"
+"Coming Soon"
+"Full platform management launching soon."
+```
+
+---
+
+### DELIVERY PAGES — ALL COMING SOON
+
+All `/delivery/*` pages:
+```
+[🚚 truck icon, sliding animation]
+"Delivery Management"
+"Coming Soon"
+```
+
+---
+
+### ERROR PAGES
+
+**404:**
+```
+[Large "404" in gradient text]
+[Broken compass or map illustration — CSS only]
+"Page not found"
+"The page you're looking for doesn't exist."
+[← Go Home]
+```
+
+**Unauthorized:**
+```
+[🔒 icon]
+"Access Denied"
+"You don't have permission to view this page."
+[← Go to Your Dashboard]
+```
+
+---
+
+## 🧩 REUSABLE COMPONENTS
+
+### `<Button>` variants
+```tsx
+// primary: gradient brand bg + glow hover
+// secondary: brand outline
+// danger: red gradient
+// ghost: transparent + hover bg
+// All: disabled state (opacity-50, cursor-not-allowed)
+// All: loading state (spinner inside, disabled)
+// All: active:scale-95 transition
+```
+
+### `<StatusBadge status="Request">`
+```tsx
+// Shows: "Request / طلب مُرسَل"
+// Color map:
+Request: blue, RePriced: amber, Accepted: teal, AcceptedPrice: teal,
+Paid: green, InProgress: blue, ReadyForShipping: purple,
+OutForDelivery: indigo, Delivered: green, Completed: emerald,
+Cancelled*: red, Rejected: red, Expired: gray, PaymentFailed: red
+// Style: rounded-full, text-xs font-bold uppercase, bg-{color}-100 text-{color}-700
+```
+
+### `<CountdownTimer expiresAt="ISO_STRING">`
+```tsx
+// Calculates remaining time from now to expiresAt
+// Updates every second (setInterval, cleanup on unmount)
+// Format: "23h 45m" or "45m 30s" or "Expired"
+// Red + animate-pulse when < 2 hours
+```
+
+### `<ImageWithFallback src="filename.jpg" alt="" className="">`
+```tsx
+// Prepends base URL via getImageUrl()
+// onError → shows gray placeholder with icon
+// loading="lazy" always
+```
+
+### `<EmptyState>`
+```tsx
+// Props: icon, title, description, actionLabel?, onAction?
+// Centered, muted, friendly
+```
+
+### `<PageLoader>`
+```tsx
+// Full page centered
+// Brand colored animated spinning ring
+// Used in React.lazy Suspense fallback
+```
+
+### `<ConfirmDialog>`
+```tsx
+// Modal with backdrop blur
+// Props: isOpen, title, message, confirmLabel, isDangerous, onConfirm, onCancel, isLoading
+// isDangerous → red confirm button
+// AnimatePresence for smooth open/close
+```
+
+### `<ServiceCardSkeleton>`
+```tsx
+// Shimmer animated skeleton
+// Same dimensions as ServiceCard
+// Show 8-12 of these during loading
+```
+
+---
+
+## 🏪 STATE MANAGEMENT
+
+### Auth Store (`authStore.ts`)
+```typescript
+// Zustand with persist middleware
+// Persist: user object + refreshToken only (NOT accessToken)
+// accessToken: memory only
+
+interface User {
+  id: string;        // JWT sub
+  email: string;     // JWT email
+  fullName: string;
+  role: 'Buyer' | 'Seller' | 'Admin' | 'DeliveryAgent';
+}
+
+// After login, map:
+// "Buyer"    → 'Buyer'
+// "Provider" → 'Seller'  ← IMPORTANT
+// "Admin"    → 'Admin'
+
+// setAuth(accessToken, refreshToken, apiRoleString)
+// Decode JWT: JSON.parse(atob(token.split('.')[1]))
+// clearAuth() + redirect to /signin
+```
+
+### Cart Store (`cartStore.ts`)
+```typescript
+// Simple: count: number
+// Used for badge in nav
+// increment(), decrement(), setCount(n)
+```
+
+---
+
+## 🔒 AXIOS INTERCEPTORS
+
+```typescript
+// Request: attach Bearer token from authStore
+// Response success: return response.data (unwrap API wrapper)
+// Response 401:
+//   1. try POST /auth/refresh with stored refreshToken
+//   2. save new tokens
+//   3. retry original request
+//   4. if refresh fails → clearAuth() → window.location = '/signin'
+// Response other errors: reject with error.response?.data?.message
+```
+
+---
+
+## 🛡️ ROLE GUARD
+
+```typescript
+// Redirect map:
+Buyer:         /home
+Seller:        /seller/dashboard
+Admin:         /admin/hub
+DeliveryAgent: /delivery
+
+// Logic:
+// Not authenticated → /signin (save intended URL in state)
+// Wrong role → redirect to role's home
+```
+
+---
+
+## 📱 RESPONSIVE BREAKPOINTS
+
+```
+Mobile:  < 640px  → single column, bottom nav, smaller text
+Tablet:  640-1024 → 2 columns, collapsible sidebar
+Desktop: > 1024px → 3-4 columns, left sidebar, top nav
+```
+
+---
+
+## ✅ FINAL REVIEW CHECKLIST
+
+**Do this pass after every page:**
+
+```
+[ ] Loading state with skeleton/spinner
+[ ] Empty state with message + CTA
+[ ] Error state with retry button
+[ ] Form submit button disabled during loading
+[ ] No double-submit possible
+[ ] Currency formatted: "1,500 EGP"
+[ ] Dates formatted: "24 Apr 2025"
+[ ] StatusBadge shows Arabic + English
+[ ] Images use getImageUrl() / ImageWithFallback
+[ ] PascalCase API responses mapped correctly
+[ ] Framer Motion entrance animation on page
+[ ] List items have stagger animation
+[ ] Mobile layout works at 375px
+[ ] Role guard protecting route
+[ ] Not-ready endpoints show Coming Soon
+[ ] Token interceptor handles 401 silently
+```
+
+---
+
+## 🚀 BUILD ORDER
+
+```
+1. axiosInstance + interceptors + authStore
+2. RoleGuard + Layouts (Buyer, Seller, Auth)
+3. AppRouter (all routes lazy loaded)
+4. AuthLayout + SignUp + SignIn (test with real API)
+5. Home page (connect GET /services/home/4 + GET /categories)
+6. Services + Search (GET /services + /services/name/{name})
+7. Service Details (GET /services/{id} + price calculator + POST /orders/request)
+8. Requests page (GET /orders filtered by status)
+9. Payment flow (GET /order/payment-summary → method → POST /orders/submit-payment)
+10. Orders page (GET /orders)
+11. Seller Dashboard (GET /seller/dashboard)
+12. My Services (GET /seller/services + DELETE)
+13. Create Service (POST /seller/services with FormData)
+14. Update Service (GET + PUT /seller/services/{id})
+15. Account page (from JWT)
+16. All Coming Soon pages
+17. Error pages (404, Unauthorized)
+18. FINAL PASS: animations, mobile, edge cases
+```
+
+---
+
+## ⚡ CRITICAL GOTCHAS — DON'T MISS THESE
+
+```
+1. Login response role "Provider" → map to "Seller" in UI everywhere
+2. /order/payment-summary is SINGULAR (not /orders/)
+3. Payment proof = base64 JSON, NOT file upload
+4. Search URL = /services/name/{name} (name in PATH not query)
+5. Seller services response = PascalCase (Id, Title, Image...)
+6. Payment summary response = PascalCase (Services, Address...)
+7. serviceDescription (not description) in service details
+8. priceAdjustment (not price) in option details
+9. thumbnailImageUrl (not imageUrl) in search results
+10. register role = number (1/2/3), login role = string
+11. JWT sub is userId, email is email — no /users/me endpoint exists
+12. basePrice in service details is often 0 — total = sum of priceAdjustments
+13. All Not-Ready endpoints return empty → show Coming Soon (never crash)
+```
+
+---
+
+*Manzili — Egyptian Home Services Marketplace*
+*Backend: http://manzili-app.runasp.net/api/*
+*16 confirmed endpoints. Zero invented ones.*
+*Build it clean. Build it beautiful. Build it right.*
